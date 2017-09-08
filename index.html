@@ -1,0 +1,27 @@
+<body>
+    
+        <script id='template' type='text/html'>
+            <h1>Log Coverage Summary</h1>
+            <code></code>
+    
+            <br />
+            
+            <h3>Coverage:</h3>
+            <span>Total Log Statements: {{totalLogs}}</span><br />
+            <span>Total Tested Logs: {{totalTestedLogs}}</span><br />
+
+            <br />
+
+            {{#each data}}
+            <span>{{@key}}:{{countCovered(.)}}/{{this.length}}</span><br />
+            {{/each}}
+            
+    
+        </script>
+    </body>
+    
+    <script src='https://cdn.jsdelivr.net/npm/ractive'></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+    <script src='./client.js'></script>
+    
