@@ -13,9 +13,11 @@
 ## Logcat-filter => JSON file
 
 To start listening for logs for a specific package(s):
-```bash
-node ./index.js --package org.kiwix.kiwixmobile --package org.kiwix.kiwixcustomexample
-```
+* Ensure Device is plugged in
+* Run Logcat-Filter
+    ```bash
+    node ./index.js --package org.kiwix.kiwixmobile --package org.kiwix.kiwixcustomexample
+    ```
 Each time the Android package(s) is started, a new file will be opened and appended to.
 
 ## Logging Coverage Checker
