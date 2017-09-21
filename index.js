@@ -8,11 +8,13 @@ const moment = require('moment');
 
 const packageNames = [].concat(argv.package);
 
-const extractPID = /Start proc.*pid=([^ ]*)/;
+const extractPID = /(?:Start proc (\d+))|(?: pid=(\d*))/;
 
 console.warn(`*** FLUSHING LOGS ***`);
 execSync('adb logcat -c');
 console.warn(`*** Android Logs Flushed ***`);
+const connectedDeviceModel = execSync('adb shell getprop ro.product.model').toString().trim();
+console.info(`Found device [${connectedDeviceModel}]`);
 
 // Retrieve a binary log stream 
 const proc = spawn('adb', ['logcat', '-B']);
@@ -24,13 +26,16 @@ packageNames.forEach(watchPackage);
 
 async function watchPackage(packageName) {
     try {
-        const procId = await watchForPID(reader, packageName);
-        const filename = `./${packageName}.${(new Date()).toISOString()}.log.json`;
+        const {
+            pid: procId,
+            procStartLog
+        } = await watchForPID(reader, packageName);
+        const filename = `./${packageName}.${(new Date()).toISOString()}.${connectedDeviceModel.replace(/\s/g, '_')}.log.json`;
         console.info(`Streaming logs for ${procId} (${packageName}) into ${filename}`);
         const eot = `Killing ${procId}`;
         let isFirst = true;
         let fileEnded = false;
-        fs.writeFileSync(filename, '['); //Starting file
+        fs.writeFileSync(filename, '[' + JSON.stringify(procStartLog) + ',\n'); //Starting file
         reader.on('entry', function (entry) {
             if (entry.pid === Number(procId) /* && !!~entry.tag.indexOf('iwix')*/ ) {
                 fs.appendFileSync(filename, (isFirst ? '' : ',') + JSON.stringify(entry) + '\n');
@@ -60,13 +65,20 @@ async function watchForPID(reader, packageName) {
     console.info(`Watching for PID of [${packageName}]`);
     return new Promise((resolve, reject) => {
         reader.on('entry', function (entry) {
-            const containsPID = !!~entry.message.indexOf(`Start proc ${packageName}`);
-            if (containsPID) {
+            const isProcessStarting = !!~entry.message.indexOf(`${packageName}`) && !!~entry.message.indexOf('Start proc');
+            if (isProcessStarting) {
                 const match = entry.message.match(extractPID);
                 if (match) {
-                    const PID = match[1];
-                    console.info(`Found ${PID} for [${packageName}]`);
-                    resolve(PID);
+                    const PID = match[1] || match[2];
+                    if (PID) {
+                        console.info(`Found ${PID} for [${packageName}]`);
+                        resolve({
+                            pid: PID,
+                            procStartLog: entry
+                        });
+                    } else {
+                        console.warn(`Found Process Start, but no PID detected for message [${entry.message}]`);
+                    }
                 }
             }
         });
