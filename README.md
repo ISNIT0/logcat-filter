@@ -36,3 +36,21 @@ To view a report, run
 ```bash
 npm run serve
 ```
+
+
+## Confirmed Working Devices
+Nexus 7
+SM-G361F
+KFOT (Kindle Fire)
+Lenovo B6000
+UBISLATE 7C+ (Android 4.0.4)
+
+## Startup Log Formats
+1: Start proc {packageName} for added application {packageName}: pid={PID} uid=XXXX gids={XXXX, XXXX}
+2: Start proc {PID}:{packageName}/XXXX for added application {packageName}
+
+Lenovo V6000: 1
+KFOT: 1
+UBISlate 7C+: 1
+Nexus 7 13: 2
+SM-G361F: 2
