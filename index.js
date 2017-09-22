@@ -8,13 +8,19 @@ const spawn = require('child_process').spawn;
 const execSync = require('child_process').execSync;
 const moment = require('moment');
 
+require('scribe-js')();
+let console = process.console;
+
+console.log(`Starting Log-Searcher version [${package.version}]`);
+
+
 const packageNames = [].concat(argv.package);
 
 const extractPID = /(?:Start proc (\d+))|(?: pid=(\d*))/;
 
-console.warn(`*** FLUSHING LOGS ***`);
+console.warning(`*** FLUSHING LOGS ***`);
 execSync('adb logcat -c');
-console.warn(`*** Android Logs Flushed ***`);
+console.warning(`*** Android Logs Flushed ***`);
 const deviceInfo = {
     model: execSync('adb shell getprop ro.product.model').toString().trim(),
     androidVersion: execSync('adb shell getprop ro.build.version.release ').toString().trim(),
@@ -48,15 +54,15 @@ async function watchPackage(packageName) {
         let fileEnded = false;
 
         const header = {
-            version: package.version,
             device: deviceInfo,
             package: packageName,
             startTime: Date.now()
         };
 
         const fileBody = JSON.stringify({
+            version: package.version,
             header: header
-        }).slice(0, -1) + ',\n\t"logs":[';
+        }).slice(0, -1) + ',\n\t"data":[';
 
         fs.writeFileSync(filename, fileBody + JSON.stringify(procStartLog) + ',\n'); //Starting file
         reader.on('entry', function (entry) {
@@ -66,6 +72,7 @@ async function watchPackage(packageName) {
             }
             if (~entry.message.indexOf(eot)) {
                 if (!fileEnded) {
+                    fileEnded = true;
                     fs.appendFileSync(filename, ']}');
                 }
                 console.info(`${procId} closed... Ended log stream to (${filename})`);
@@ -76,6 +83,7 @@ async function watchPackage(packageName) {
         process.on('SIGINT', function () {
             proc.kill();
             if (!fileEnded) {
+                fileEnded = true;
                 fs.appendFileSync(filename, ']}');
             }
         });

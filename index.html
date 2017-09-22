@@ -1,8 +1,8 @@
 <body>
     
         <script id='template' type='text/html'>
-            <h1>Log Coverage Summary</h1>
-            <code></code>
+            <h1>Log Coverage Summary ({{data.version}})</h1>
+            <pre><code>{{JSON.stringify(data.header, null, "\t")}}</code></pre>
     
             <br />
             
@@ -12,7 +12,7 @@
 
             <br />
 
-            {{#each data}}
+            {{#each data.data}}
             <span>{{@key}}:{{countCovered(.)}}/{{this.length}}</span><br />
             {{/each}}
             

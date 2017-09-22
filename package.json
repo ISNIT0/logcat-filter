@@ -13,6 +13,8 @@
     "adbkit-logcat": "^1.1.0",
     "http-server": "^0.10.0",
     "moment": "^2.18.1",
+    "scribe-js": "^2.0.4",
+    "semver": "^5.4.1",
     "yargs": "^8.0.2"
   },
   "devDependencies": {},

@@ -4,7 +4,7 @@ const r = new Ractive({
     computed: {
         totalLogs: function () {
             const self = this;
-            const data = self.get('data');
+            const data = self.get('data.data');
             return Object.keys(data)
                 .reduce((acc, key) => {
                     const matches = data[key];
@@ -13,7 +13,7 @@ const r = new Ractive({
         },
         totalTestedLogs: function () {
             const self = this;
-            const data = self.get('data');
+            const data = self.get('data.data');
             return Object.keys(data)
                 .reduce((acc, key) => {
                     const matches = data[key];
