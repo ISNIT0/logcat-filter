@@ -1,3 +1,5 @@
+const package = require('./package.json');
+
 const fs = require('fs');
 const argv = require('yargs').argv
 
@@ -13,8 +15,13 @@ const extractPID = /(?:Start proc (\d+))|(?: pid=(\d*))/;
 console.warn(`*** FLUSHING LOGS ***`);
 execSync('adb logcat -c');
 console.warn(`*** Android Logs Flushed ***`);
-const connectedDeviceModel = execSync('adb shell getprop ro.product.model').toString().trim();
-console.info(`Found device [${connectedDeviceModel}]`);
+const deviceInfo = {
+    model: execSync('adb shell getprop ro.product.model').toString().trim(),
+    androidVersion: execSync('adb shell getprop ro.build.version.release ').toString().trim(),
+    sdkVersion: execSync('adb shell getprop ro.build.version.sdk').toString().trim()
+};
+const loggableDeviceInfo = Object.keys(deviceInfo).map(key => `\t[${key}] = [${deviceInfo[key]}]`).join('\n');
+console.info(`Found device:\n{\n${loggableDeviceInfo}\n}`);
 
 // Retrieve a binary log stream 
 const proc = spawn('adb', ['logcat', '-B']);
@@ -30,12 +37,28 @@ async function watchPackage(packageName) {
             pid: procId,
             procStartLog
         } = await watchForPID(reader, packageName);
-        const filename = `./${packageName}.${(new Date()).toISOString()}.${connectedDeviceModel.replace(/\s/g, '_')}.log.json`;
+
+        const filename = `./${packageName}.${(new Date()).toISOString()}.${deviceInfo.model.replace(/\s/g, '_')}.log.json`;
+
         console.info(`Streaming logs for ${procId} (${packageName}) into ${filename}`);
+
         const eot = `Killing ${procId}`;
+
         let isFirst = true;
         let fileEnded = false;
-        fs.writeFileSync(filename, '[' + JSON.stringify(procStartLog) + ',\n'); //Starting file
+
+        const header = {
+            version: package.version,
+            device: deviceInfo,
+            package: packageName,
+            startTime: Date.now()
+        };
+
+        const fileBody = JSON.stringify({
+            header: header
+        }).slice(0, -1) + ',\n\t"logs":[';
+
+        fs.writeFileSync(filename, fileBody + JSON.stringify(procStartLog) + ',\n'); //Starting file
         reader.on('entry', function (entry) {
             if (entry.pid === Number(procId) /* && !!~entry.tag.indexOf('iwix')*/ ) {
                 fs.appendFileSync(filename, (isFirst ? '' : ',') + JSON.stringify(entry) + '\n');
@@ -43,7 +66,7 @@ async function watchPackage(packageName) {
             }
             if (~entry.message.indexOf(eot)) {
                 if (!fileEnded) {
-                    fs.appendFileSync(filename, ']');
+                    fs.appendFileSync(filename, ']}');
                 }
                 console.info(`${procId} closed... Ended log stream to (${filename})`);
                 watchPackage(packageName);
@@ -53,7 +76,7 @@ async function watchPackage(packageName) {
         process.on('SIGINT', function () {
             proc.kill();
             if (!fileEnded) {
-                fs.appendFileSync(filename, ']');
+                fs.appendFileSync(filename, ']}');
             }
         });
     } catch (err) {
